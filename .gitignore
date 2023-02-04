@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+
+transport-catalogue/.vscode
+transport-catalogue/**.txt
