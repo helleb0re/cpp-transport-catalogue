@@ -11,13 +11,32 @@ namespace transport_catalogue
         stop_to_buses_.insert({&stops_.back(), {}});
     }
 
-    void TransportCatalogue::AddBus(std::string_view name, std::vector<std::string_view> route_stops)
+    void TransportCatalogue::AddBus(std::string_view name, const std::vector<std::string_view> &route_stops)
     {
         buses_.push_back({string(name), {}});
+        Stop *now_stop = nullptr;
+        Stop *prev_stop = nullptr;
         for (const auto &route_stop : route_stops)
         {
-            buses_.back().route.push_back(stopname_to_stop_.at(route_stop));
-            stop_to_buses_[stopname_to_stop_.at(route_stop)].insert(buses_.back().name);
+            now_stop = stopname_to_stop_.at(route_stop);
+
+            buses_.back().route.push_back(now_stop);
+            stop_to_buses_[now_stop].insert(buses_.back().name);
+
+            if (prev_stop)
+            {
+                buses_.back().geo_length += geo::ComputeDistance(now_stop->coord, prev_stop->coord);
+                if (stops_ptr_to_distance_.count({prev_stop, now_stop}) == 0)
+                {
+                    buses_.back().route_length += stops_ptr_to_distance_.at({now_stop, prev_stop});
+                }
+                else
+                {
+                    buses_.back().route_length += stops_ptr_to_distance_.at({prev_stop, now_stop});
+                }
+            }
+
+            prev_stop = now_stop;
         }
         busname_to_bus_.insert({buses_.back().name, &buses_.back()});
     }
@@ -50,23 +69,8 @@ namespace transport_catalogue
         unordered_set<Stop *> tmp(bus->route.begin(), bus->route.end());
         bus_info.unique_stops = tmp.size();
 
-        double geo_dist = 0;
-        unsigned long route_dist = 0;
-        for (int i = 0; i < bus->route.size() - 1; ++i)
-        {
-            geo_dist += ComputeDistance(bus->route[i]->coord, bus->route[i + 1]->coord);
-            if (stops_ptr_to_distance_.count({bus->route[i], bus->route[i + 1]}) == 0)
-            {
-                route_dist += stops_ptr_to_distance_.at({bus->route[i + 1], bus->route[i]});
-            }
-            else
-            {
-                route_dist += stops_ptr_to_distance_.at({bus->route[i], bus->route[i + 1]});
-            }
-        }
-
-        bus_info.route_length = route_dist;
-        bus_info.curvature = route_dist / geo_dist;
+        bus_info.route_length = bus->route_length;
+        bus_info.curvature = bus->route_length / bus->geo_length;
 
         return bus_info;
     }

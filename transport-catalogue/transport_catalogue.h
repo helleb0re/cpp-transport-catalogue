@@ -27,6 +27,8 @@ namespace transport_catalogue
     {
         std::string name;
         std::vector<Stop *> route;
+        double route_length = 0;
+        double geo_length = 0;
     };
 
     struct BusInfo
@@ -62,7 +64,7 @@ namespace transport_catalogue
         void AddStop(std::string_view name, double lat, double lng);
         Stop *FindStop(const std::string_view name);
 
-        void AddBus(std::string_view name, std::vector<std::string_view> route_stops);
+        void AddBus(std::string_view name, const std::vector<std::string_view> &route_stops);
         Bus *FindBus(const std::string_view name);
 
         BusInfo GetBusInfo(const std::string_view name);
