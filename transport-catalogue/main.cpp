@@ -1,21 +1,24 @@
 #include <iostream>
 #include <fstream>
 
-#include "input_reader.h"
-#include "stat_reader.h"
+#include "request_handler.h"
 #include "transport_catalogue.h"
+#include "json_reader.h"
+#include "svg.h"
 
 using namespace std;
+using namespace transport_catalogue;
 
 int main()
 {
-    transport_catalogue::TransportCatalogue tc;
-    transport_catalogue::input_reader::InputReader ir;
-    transport_catalogue::output_reader::OutputReader orr;
+    TransportCatalogue db;
+    renderer::MapRenderer mr;
+    RequestHandler rh{db, mr};
 
-    ifstream cin("test.txt");
-    ofstream cout("tt.txt");
+    ifstream input_file("input.json"s);
+    ofstream output_file("output.json"s);
+    iodata::JsonReader json_reader(db, rh, output_file);
+    json_reader.LoadFile(input_file);
 
-    ir.Load(cin, tc);
-    orr.RequestInfo(cin, cout, tc);
+    // rh.RenderMap().Render(output_file);
 }
