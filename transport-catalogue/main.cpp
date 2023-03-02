@@ -1,10 +1,10 @@
 #include <iostream>
 #include <fstream>
 
-#include "request_handler.h"
 #include "transport_catalogue.h"
+#include "map_renderer.h"
+#include "request_handler.h"
 #include "json_reader.h"
-#include "svg.h"
 
 using namespace std;
 using namespace transport_catalogue;
@@ -19,6 +19,4 @@ int main()
     ofstream output_file("output.json"s);
     iodata::JsonReader json_reader(db, rh, output_file);
     json_reader.LoadFile(input_file);
-
-    // rh.RenderMap().Render(output_file);
 }
