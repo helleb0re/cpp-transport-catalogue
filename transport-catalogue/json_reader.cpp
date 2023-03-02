@@ -14,12 +14,12 @@ namespace transport_catalogue
         {
             doc_ = json::Load(input);
 
-            Dict values = doc_.value().GetRoot().AsMap();
+            Dict values = doc_.value().GetRoot().AsDict();
 
             if (values.count("base_requests"s) != 0 && !values.at("base_requests"s).AsArray().empty())
                 InputDataBase();
 
-            if (values.count("render_settings"s) != 0 && !values.at("render_settings"s).AsMap().empty())
+            if (values.count("render_settings"s) != 0 && !values.at("render_settings"s).AsDict().empty())
                 InputRenderSettings();
 
             if (values.count("stat_requests"s) != 0 && !values.at("stat_requests"s).AsArray().empty())
@@ -37,16 +37,16 @@ namespace transport_catalogue
 
         void JsonReader::InputDataBase()
         {
-            Array base_requests = doc_.value().GetRoot().AsMap().at("base_requests"s).AsArray();
+            Array base_requests = doc_.value().GetRoot().AsDict().at("base_requests"s).AsArray();
 
             unordered_map<string_view, const Dict &> stop_to_stops_distances_queries;
 
             for (const auto &node : base_requests)
             {
-                if (node.AsMap().at("type"s) != "Stop"s)
+                if (node.AsDict().at("type"s) != "Stop"s)
                     continue;
 
-                const auto &stop_node = node.AsMap();
+                const auto &stop_node = node.AsDict();
 
                 const auto &stop_name = stop_node.at("name"s).AsString();
 
@@ -54,7 +54,7 @@ namespace transport_catalogue
                             {stop_node.at("latitude"s).AsDouble(),
                              stop_node.at("longitude"s).AsDouble()});
 
-                stop_to_stops_distances_queries.insert({stop_name, stop_node.at("road_distances"s).AsMap()});
+                stop_to_stops_distances_queries.insert({stop_name, stop_node.at("road_distances"s).AsDict()});
             }
 
             for (const auto &[stop_name, stops] : stop_to_stops_distances_queries)
@@ -69,10 +69,10 @@ namespace transport_catalogue
 
             for (const auto &node : base_requests)
             {
-                if (node.AsMap().at("type"s) != "Bus"s)
+                if (node.AsDict().at("type"s) != "Bus"s)
                     continue;
 
-                const auto &bus_node = node.AsMap();
+                const auto &bus_node = node.AsDict();
 
                 const auto &bus_name = bus_node.at("name"s).AsString();
                 bool is_roundtrip = bus_node.at("is_roundtrip"s).AsBool();
@@ -89,7 +89,7 @@ namespace transport_catalogue
 
         void JsonReader::InputRenderSettings()
         {
-            Dict render_settings = doc_.value().GetRoot().AsMap().at("render_settings"s).AsMap();
+            Dict render_settings = doc_.value().GetRoot().AsDict().at("render_settings"s).AsDict();
 
             renderer::RenderSettings rs;
 
@@ -128,21 +128,26 @@ namespace transport_catalogue
 
         void JsonReader::OutputData()
         {
-            Array stat_requests = doc_.value().GetRoot().AsMap().at("stat_requests"s).AsArray();
+            Array stat_requests = doc_.value().GetRoot().AsDict().at("stat_requests"s).AsArray();
 
-            Array response;
+            Array responses_array = Builder{}
+                                        .StartArray()
+                                        .EndArray()
+                                    .Build()
+                                    .AsArray();
 
             for (const auto &node : stat_requests)
             {
-                const auto &type = node.AsMap().at("type"s);
+                const auto &type = node.AsDict().at("type"s);
 
                 if (type == "Stop"s)
                 {
-                    const auto &stop_req_data = node.AsMap();
+                    const auto &stop_req_data = node.AsDict();
+
+                    string key = "error_message"s;
+                    Node::Value res_value{"not found"s};
 
                     auto *res = req_handler_.GetBusesByStop(stop_req_data.at("name"s).AsString());
-
-                    Dict stop_json_response{{"request_id"s, stop_req_data.at("id"s).AsInt()}};
 
                     if (res)
                     {
@@ -151,54 +156,74 @@ namespace transport_catalogue
                                   { return string(bus_name); });
                         sort(buses.begin(), buses.end(), [](const auto &node_a, const auto &node_b)
                              { return node_a.AsString() < node_b.AsString(); });
-                        stop_json_response.insert({"buses"s, buses});
-                    }
-                    else
-                    {
-                        stop_json_response.insert({"error_message"s, "not found"s});
+
+                        key = "buses"s;
+                        res_value = move(buses);
                     }
 
-                    response.push_back({move(stop_json_response)});
+                    responses_array.push_back(
+                        Builder{}
+                            .StartDict()
+                                .Key("request_id"s).Value(std::move(stop_req_data.at("id"s).AsInt()))
+                                .Key(move(key)).Value(std::move(res_value))
+                            .EndDict()
+                        .Build()
+                    );
                 }
                 else if (type == "Bus"s)
                 {
-                    const auto &bus_req_data = node.AsMap();
+                    const auto &bus_req_data = node.AsDict();
 
                     auto bus_info = req_handler_.GetBusStat(bus_req_data.at("name"s).AsString());
 
-                    Dict bus_json_response{{"request_id"s, bus_req_data.at("id"s).AsInt()}};
-
                     if (bus_info.has_value())
                     {
-                        bus_json_response.insert({"curvature"s, bus_info.value().curvature});
-                        bus_json_response.insert({"route_length"s, bus_info.value().route_length});
-                        bus_json_response.insert({"stop_count"s, bus_info.value().all_stops});
-                        bus_json_response.insert({"unique_stop_count"s, bus_info.value().unique_stops});
+                        responses_array.push_back(
+                            Builder{}
+                                .StartDict()
+                                    .Key("request_id"s).Value(std::move(bus_req_data.at("id"s).AsInt()))
+                                    .Key("curvature"s).Value(bus_info.value().curvature)
+                                    .Key("route_length"s).Value(bus_info.value().route_length)
+                                    .Key("stop_count"s).Value(bus_info.value().all_stops)
+                                    .Key("unique_stop_count"s).Value(bus_info.value().unique_stops)
+                                .EndDict()
+                            .Build()
+                        );
                     }
                     else
                     {
-                        bus_json_response.insert({"error_message"s, "not found"s});
+                        responses_array.push_back(
+                            Builder{}
+                                .StartDict()
+                                    .Key("request_id"s).Value(std::move(bus_req_data.at("id"s).AsInt()))
+                                    .Key("error_message"s).Value("not found"s)
+                                .EndDict()
+                            .Build()
+                        );
                     }
-
-                    response.push_back({move(bus_json_response)});
                 }
                 else if (type == "Map"s)
                 {
-                    const auto &map_req_data = node.AsMap();
-                    Dict map_json_response{{"request_id"s, map_req_data.at("id"s).AsInt()}};
+                    const auto &map_req_data = node.AsDict();
 
                     ostringstream output_map;
                     req_handler_.RenderMap().Render(output_map);
 
                     string map_str = output_map.str();
                     map_str.erase(map_str.size() - 1);
-                    map_json_response.insert({"map"s, map_str});
 
-                    response.push_back({move(map_json_response)});
+                    responses_array.push_back(
+                        Builder{}
+                            .StartDict()
+                                .Key("request_id"s).Value(std::move(map_req_data.at("id"s).AsInt()))
+                                .Key("map"s).Value(std::move(map_str))
+                            .EndDict()
+                        .Build()
+                    );
                 }
             }
 
-            PrintValue(response, out_);
+            Print(Document{Node{responses_array}}, out_);
         }
 
         svg::Color JsonReader::ParseColor(const Node &node) const

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "json.h"
+#include "json_builder.h"
 #include "request_handler.h"
 #include "transport_catalogue.h"
 #include "map_renderer.h"
@@ -32,7 +33,7 @@ namespace transport_catalogue
             void InputRenderSettings();
             void OutputData();
 
-            svg::Color ParseColor(const json::Node& node) const;
+            svg::Color ParseColor(const json::Node &node) const;
 
             std::optional<json::Document> doc_;
             TransportCatalogue &db_;
