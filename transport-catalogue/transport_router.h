@@ -9,6 +9,8 @@
 #include "router.h"
 #include "transport_catalogue.h"
 
+constexpr double METERS_IN_KM = 1000;
+constexpr double MINUTES_IN_HOUR = 60;
 namespace transport_catalogue
 {
     namespace router
@@ -51,7 +53,7 @@ namespace transport_catalogue
                                It b_stops, It e_stops,
                                const DictStopsPairToDistances &distances_map)
             {
-                const double bus_multiplier = 1.0 / 1000 / (*routing_settings_).bus_velocity * 60;
+                const double bus_multiplier = 1.0 / METERS_IN_KM / (*routing_settings_).bus_velocity * MINUTES_IN_HOUR;
                 const double wait_multiplier = (*routing_settings_).bus_wait_time;
 
                 std::deque<double> weights;
