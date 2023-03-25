@@ -43,9 +43,9 @@ namespace transport_catalogue
         {
         public:
             MapRenderer() = default;
-            MapRenderer(const RenderSettings &render_settings);
+            explicit MapRenderer(const RenderSettings &render_settings);
 
-            void SetOrUpdateRenderSettings(const RenderSettings &render_settings);
+            void SetOrUpdateRenderSettings(RenderSettings &settings);
 
             bool HasRenderSettings() const;
 

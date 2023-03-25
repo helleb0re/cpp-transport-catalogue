@@ -17,9 +17,9 @@ namespace transport_catalogue
         MapRenderer::MapRenderer(const RenderSettings &render_settings)
             : render_settings_(move(render_settings)) {}
 
-        void MapRenderer::SetOrUpdateRenderSettings(const RenderSettings &render_settings)
+        void MapRenderer::SetOrUpdateRenderSettings(RenderSettings &settings)
         {
-            render_settings_ = move(render_settings);
+            render_settings_ = move(settings);
         }
 
         bool MapRenderer::HasRenderSettings() const
@@ -63,7 +63,7 @@ namespace transport_catalogue
             size_t k = 0;
             for (const auto &bus : buses)
             {
-                if (bus.route.size() < 1)
+                if (bus.route.empty())
                     continue;
 
                 svg::Polyline polyline;
@@ -99,11 +99,11 @@ namespace transport_catalogue
                 for_each(tmp.begin(), tmp.end(), [&](const Stop *stop)
                          {
                              svg::Point p = proj(stop->coord);
-                             svg_buses_names.push_back({});
+                             svg_buses_names.emplace_back();
 
                              for (int i = 0; i < 2; ++i)
                              {
-                                 svg_buses_names.back().push_back({});
+                                 svg_buses_names.back().emplace_back();
                                  auto &svg_text = svg_buses_names.back().back();
 
                                  svg_text.SetPosition(p);
@@ -136,17 +136,17 @@ namespace transport_catalogue
                      {
                           svg::Point p = proj(stop->coord);
 
-                          svg_stops_circles.push_back({});
+                          svg_stops_circles.emplace_back();
 
                           svg_stops_circles.back().SetCenter(p);
                           svg_stops_circles.back().SetRadius(rs.stop_radius);
                           svg_stops_circles.back().SetFillColor("white"s);
 
-                          svg_stops_text.push_back({});
+                          svg_stops_text.emplace_back();
 
                           for (int i = 0; i < 2; ++i)
                           {
-                              svg_stops_text.back().push_back({});
+                              svg_stops_text.back().emplace_back();
                               auto &svg_stop_text = svg_stops_text.back().back();
 
                               svg_stop_text.SetPosition(p);

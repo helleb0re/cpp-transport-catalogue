@@ -3,6 +3,7 @@
 
 #include "transport_catalogue.h"
 #include "map_renderer.h"
+#include "transport_router.h"
 #include "request_handler.h"
 #include "json_reader.h"
 
@@ -13,7 +14,8 @@ int main()
 {
     TransportCatalogue db;
     renderer::MapRenderer mr;
-    RequestHandler rh{db, mr};
+    router::TransportRouter tr;
+    RequestHandler rh{db, mr, tr};
 
     ifstream input_file("input.json"s);
     ofstream output_file("output.json"s);
