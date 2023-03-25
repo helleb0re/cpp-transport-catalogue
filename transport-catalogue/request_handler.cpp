@@ -4,8 +4,13 @@ using namespace std;
 
 namespace transport_catalogue
 {
-    RequestHandler::RequestHandler(const TransportCatalogue &db, renderer::MapRenderer &renderer)
-        : db_(db), renderer_(renderer) {}
+    using namespace renderer;
+    using namespace router;
+
+    RequestHandler::RequestHandler(const TransportCatalogue &db,
+                                   MapRenderer &map_renderer,
+                                   TransportRouter &transport_router)
+        : db_(db), map_renderer_(map_renderer), transport_router_(transport_router) {}
 
     optional<BusStat> RequestHandler::GetBusStat(const string_view &bus_name) const
     {
@@ -23,7 +28,7 @@ namespace transport_catalogue
             bus_info.all_stops = 2 * bus->route.size() - 1;
         }
 
-        unordered_set<Stop*> tmp(bus->route.begin(), bus->route.end());
+        unordered_set<Stop *> tmp(bus->route.begin(), bus->route.end());
         bus_info.unique_stops = tmp.size();
 
         bus_info.route_length = bus->route_length;
@@ -37,9 +42,9 @@ namespace transport_catalogue
         return db_.GetBusSchedules(stop_name);
     }
 
-    void RequestHandler::SetRenderSettings(const renderer::RenderSettings &settings)
+    void RequestHandler::SetRenderSettings(renderer::RenderSettings &settings)
     {
-        renderer_.SetOrUpdateRenderSettings(settings);
+        map_renderer_.SetOrUpdateRenderSettings(settings);
     }
 
     svg::Document RequestHandler::RenderMap() const
@@ -50,6 +55,28 @@ namespace transport_catalogue
         sort(buses.begin(), buses.end(), [](const auto &bus_a, const auto &bus_b)
              { return bus_a.name < bus_b.name; });
 
-        return renderer_.RenderMap(buses);
+        return map_renderer_.RenderMap(buses);
+    }
+
+    optional<PathData> RequestHandler::GetShortWayBetween(std::string_view start_stop, std::string_view end_stop)
+    {
+        Stop *start_stop_ptr = db_.FindStop(start_stop);
+        Stop *end_stop_ptr = db_.FindStop(end_stop);
+
+        if (!start_stop_ptr || !end_stop_ptr)
+            return nullopt;
+
+        if (transport_router_.GetVertexAmount() == 0)
+        {
+            transport_router_.SetVertexAmount(db_.GetAllStops().size() * 2);
+            transport_router_.FillDataToGraph(db_.GetAllBuses(), db_.GetDistancesMap());
+        }
+
+        return transport_router_.GetShortWayBetween(start_stop_ptr, end_stop_ptr);
+    }
+
+    void RequestHandler::SetRoutingSettings(RoutingSettings &settings)
+    {
+        transport_router_.SetOrUpdateRoutingSettings(settings);
     }
 } // namespace transport_catalogue

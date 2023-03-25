@@ -31,6 +31,8 @@ namespace transport_catalogue
         };
     } // namespace detail
 
+    using DictStopsPairToDistances = std::unordered_map<std::pair<Stop *, Stop *>, double, detail::StopsPairHash>;
+
     class TransportCatalogue
     {
     public:
@@ -45,6 +47,8 @@ namespace transport_catalogue
                               const std::vector<std::pair<std::string_view, double>> &distance);
 
         const std::deque<Bus> &GetAllBuses() const;
+        const std::deque<Stop> &GetAllStops() const;
+        const DictStopsPairToDistances &GetDistancesMap() const;
 
     private:
         /* data */
@@ -53,7 +57,7 @@ namespace transport_catalogue
         std::deque<Bus> buses_;
         std::unordered_map<std::string_view, Bus *> busname_to_bus_;
         std::unordered_map<Stop *, std::unordered_set<std::string_view>> stop_to_buses_;
-        std::unordered_map<std::pair<Stop *, Stop *>, double, detail::StopsPairHash> stops_ptr_to_distance_;
+        DictStopsPairToDistances stops_ptr_to_distance_;
 
         double GetRouteLength(Stop *prev_stop, Stop *now_stop, bool is_roundtrip) const;
 
@@ -64,20 +68,20 @@ namespace transport_catalogue
             Stop *prev_stop = nullptr;
             for_each(it_begin, it_end, [&](const auto &route_stop)
                      {
-            now_stop = stopname_to_stop_.at(route_stop);
+                        now_stop = stopname_to_stop_.at(route_stop);
 
-            buses_.back().route.push_back(now_stop);
-            stop_to_buses_[now_stop].insert(buses_.back().name);
+                        buses_.back().route.push_back(now_stop);
+                        stop_to_buses_[now_stop].insert(buses_.back().name);
 
-            if (prev_stop)
-            {
-                double geo_length = geo::ComputeDistance(now_stop->coord, prev_stop->coord);
-                buses_.back().geo_length += geo_length * (is_roundtrip ? 1 : 2);
-                
-                buses_.back().route_length += GetRouteLength(prev_stop, now_stop, is_roundtrip);
-            }
+                        if (prev_stop)
+                        {
+                            double geo_length = geo::ComputeDistance(now_stop->coord, prev_stop->coord);
+                            buses_.back().geo_length += geo_length * (is_roundtrip ? 1 : 2);
+                            
+                            buses_.back().route_length += GetRouteLength(prev_stop, now_stop, is_roundtrip);
+                        }
 
-            prev_stop = now_stop; });
+                        prev_stop = now_stop; });
         }
     };
 

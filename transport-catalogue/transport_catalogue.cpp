@@ -6,7 +6,7 @@ namespace transport_catalogue
 {
     void TransportCatalogue::AddStop(const string_view &name, geo::Coordinates coord)
     {
-        stops_.push_back({string(name), coord});
+        stops_.push_back({string(name), coord, stops_.size() * 2});
         stopname_to_stop_.insert({stops_.back().name, &stops_.back()});
         stop_to_buses_.insert({&stops_.back(), {}});
     }
@@ -25,20 +25,16 @@ namespace transport_catalogue
     Stop *TransportCatalogue::FindStop(const std::string_view name) const
     {
         if (stopname_to_stop_.count(name) == 0)
-        {
-            // throw std::invalid_argument("Invalid stop name"s);
             return nullptr;
-        }
+
         return stopname_to_stop_.at(name);
     }
 
     Bus *TransportCatalogue::FindBus(const std::string_view name) const
     {
         if (busname_to_bus_.count(name) == 0)
-        {
-            // throw invalid_argument("Invalid bus name"s);
             return nullptr;
-        }
+
         return busname_to_bus_.at(name);
     }
 
@@ -63,6 +59,16 @@ namespace transport_catalogue
     const deque<Bus> &TransportCatalogue::GetAllBuses() const
     {
         return buses_;
+    }
+
+    const std::deque<Stop> &TransportCatalogue::GetAllStops() const
+    {
+        return stops_;
+    }
+
+    const DictStopsPairToDistances &TransportCatalogue::GetDistancesMap() const
+    {
+        return stops_ptr_to_distance_;
     }
 
     double TransportCatalogue::GetRouteLength(Stop *prev_stop, Stop *now_stop, bool is_roundtrip) const
