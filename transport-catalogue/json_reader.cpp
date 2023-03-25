@@ -22,6 +22,9 @@ namespace transport_catalogue
             if (values.count("render_settings"s) != 0 && !values.at("render_settings"s).AsDict().empty())
                 InputRenderSettings();
 
+            if (values.count("routing_settings"s) != 0 && !values.at("routing_settings"s).AsDict().empty())
+                InputRoutingSettings();
+
             if (values.count("stat_requests"s) != 0 && !values.at("stat_requests"s).AsArray().empty())
                 OutputData();
         }
@@ -126,6 +129,17 @@ namespace transport_catalogue
             req_handler_.SetRenderSettings(rs);
         }
 
+        void JsonReader::InputRoutingSettings()
+        {
+            Dict routing_settings = doc_.value().GetRoot().AsDict().at("routing_settings"s).AsDict();
+
+            router::RoutingSettings rs;
+            rs.bus_wait_time = routing_settings.at("bus_wait_time").AsDouble();
+            rs.bus_velocity = routing_settings.at("bus_velocity").AsDouble();
+
+            req_handler_.SetRoutingSettings(rs);
+        }
+
         void JsonReader::OutputData()
         {
             Array stat_requests = doc_.value().GetRoot().AsDict().at("stat_requests"s).AsArray();
@@ -133,8 +147,8 @@ namespace transport_catalogue
             Array responses_array = Builder{}
                                         .StartArray()
                                         .EndArray()
-                                    .Build()
-                                    .AsArray();
+                                        .Build()
+                                        .AsArray();
 
             for (const auto &node : stat_requests)
             {
@@ -164,11 +178,12 @@ namespace transport_catalogue
                     responses_array.push_back(
                         Builder{}
                             .StartDict()
-                                .Key("request_id"s).Value(std::move(stop_req_data.at("id"s).AsInt()))
-                                .Key(move(key)).Value(std::move(res_value))
+                            .Key("request_id"s)
+                            .Value(stop_req_data.at("id"s).AsInt())
+                            .Key(move(key))
+                            .Value(move(res_value))
                             .EndDict()
-                        .Build()
-                    );
+                            .Build());
                 }
                 else if (type == "Bus"s)
                 {
@@ -181,25 +196,30 @@ namespace transport_catalogue
                         responses_array.push_back(
                             Builder{}
                                 .StartDict()
-                                    .Key("request_id"s).Value(std::move(bus_req_data.at("id"s).AsInt()))
-                                    .Key("curvature"s).Value(bus_info.value().curvature)
-                                    .Key("route_length"s).Value(bus_info.value().route_length)
-                                    .Key("stop_count"s).Value(bus_info.value().all_stops)
-                                    .Key("unique_stop_count"s).Value(bus_info.value().unique_stops)
+                                .Key("request_id"s)
+                                .Value(std::move(bus_req_data.at("id"s).AsInt()))
+                                .Key("curvature"s)
+                                .Value(bus_info.value().curvature)
+                                .Key("route_length"s)
+                                .Value(bus_info.value().route_length)
+                                .Key("stop_count"s)
+                                .Value(bus_info.value().all_stops)
+                                .Key("unique_stop_count"s)
+                                .Value(bus_info.value().unique_stops)
                                 .EndDict()
-                            .Build()
-                        );
+                                .Build());
                     }
                     else
                     {
                         responses_array.push_back(
                             Builder{}
                                 .StartDict()
-                                    .Key("request_id"s).Value(std::move(bus_req_data.at("id"s).AsInt()))
-                                    .Key("error_message"s).Value("not found"s)
+                                .Key("request_id"s)
+                                .Value(bus_req_data.at("id"s).AsInt())
+                                .Key("error_message"s)
+                                .Value("not found"s)
                                 .EndDict()
-                            .Build()
-                        );
+                                .Build());
                     }
                 }
                 else if (type == "Map"s)
@@ -215,18 +235,82 @@ namespace transport_catalogue
                     responses_array.push_back(
                         Builder{}
                             .StartDict()
-                                .Key("request_id"s).Value(std::move(map_req_data.at("id"s).AsInt()))
-                                .Key("map"s).Value(std::move(map_str))
+                            .Key("request_id"s)
+                            .Value(map_req_data.at("id"s).AsInt())
+                            .Key("map"s)
+                            .Value(move(map_str))
                             .EndDict()
-                        .Build()
-                    );
+                            .Build());
+                }
+                else if (type == "Route"s)
+                {
+                    const auto &route_req_data = node.AsDict();
+
+                    string_view start_stop = route_req_data.at("from").AsString();
+                    string_view end_stop = route_req_data.at("to").AsString();
+                    auto ans = req_handler_.GetShortWayBetween(start_stop, end_stop);
+
+                    if (ans.has_value())
+                    {
+                        Array items((*ans).items.size());
+                        transform((*ans).items.begin(), (*ans).items.end(), items.begin(),
+                                  [](const PathDataItem &data)
+                                  {
+                                      Dict dict;
+                                      switch (data.index())
+                                      {
+                                      case 0:
+                                      {
+                                          const PathDataItemBus &info = get<PathDataItemBus>(data);
+                                          dict.insert({"type"s, info.type});
+                                          dict.insert({"bus"s, string(info.name)});
+                                          dict.insert({"span_count"s, info.span_count});
+                                          dict.insert({"time"s, info.time});
+                                          break;
+                                      }
+                                      case 1:
+                                      {
+                                          const PathDataItemWait &info = get<PathDataItemWait>(data);
+                                          dict.insert({"type"s, info.type});
+                                          dict.insert({"stop_name"s, string(info.stop_name)});
+                                          dict.insert({"time"s, info.time});
+                                          break;
+                                      }
+                                      }
+                                      return dict;
+                                  });
+
+                        responses_array.push_back(
+                            Builder{}
+                                .StartDict()
+                                .Key("request_id"s)
+                                .Value(route_req_data.at("id"s).AsInt())
+                                .Key("total_time"s)
+                                .Value((*ans).total_time)
+                                .Key("items"s)
+                                .Value(move(items))
+                                .EndDict()
+                                .Build());
+                    }
+                    else
+                    {
+                        responses_array.push_back(
+                            Builder{}
+                                .StartDict()
+                                .Key("request_id"s)
+                                .Value(route_req_data.at("id"s).AsInt())
+                                .Key("error_message"s)
+                                .Value("not found"s)
+                                .EndDict()
+                                .Build());
+                    }
                 }
             }
 
             Print(Document{Node{responses_array}}, out_);
         }
 
-        svg::Color JsonReader::ParseColor(const Node &node) const
+        svg::Color JsonReader::ParseColor(const Node &node)
         {
             if (node.IsString())
             {

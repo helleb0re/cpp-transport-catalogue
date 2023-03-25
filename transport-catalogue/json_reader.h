@@ -31,9 +31,10 @@ namespace transport_catalogue
         private:
             void InputDataBase();
             void InputRenderSettings();
+            void InputRoutingSettings();
             void OutputData();
 
-            svg::Color ParseColor(const json::Node &node) const;
+            static svg::Color ParseColor(const json::Node &node);
 
             std::optional<json::Document> doc_;
             TransportCatalogue &db_;
