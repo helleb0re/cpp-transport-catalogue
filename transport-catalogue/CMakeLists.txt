@@ -11,7 +11,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/input.json
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/output.json
     ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS transport_catalogue.proto svg.proto map_renderer.proto transport_router.proto graph.proto)
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS transport_catalogue.proto svg.proto map_renderer.proto transport_router.proto)
 
 set(TRANSPORT_CATALOGUE_FILES
         domain.cpp
@@ -38,7 +38,6 @@ set(TRANSPORT_CATALOGUE_FILES
         svg.h
         transport_catalogue.cpp
         transport_catalogue.h
-        transport_catalogue.proto
         transport_router.cpp
         transport_router.h)
 
