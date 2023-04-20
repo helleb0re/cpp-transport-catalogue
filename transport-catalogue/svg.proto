@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package transport_catalogue_serialize;
+
+message Color {
+    string color_str = 1;
+    repeated uint32 color_arr = 2;
+    double opacity = 3;
+}

@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package transport_catalogue_serialize;
+
+message RoutingSettings {
+    int32 bus_velocity = 1;
+    int32 bus_wait_time = 2;
+}

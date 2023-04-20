@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package transport_catalogue_serialize;
+
+import "svg.proto";
+
+message RenderSettings {
+    int32 bus_label_font_size = 1;
+    repeated double bus_label_offset = 2;
+    repeated Color color_palette = 3;
+    double height = 4;
+    double line_width = 5;
+    double padding = 6;
+    int32 stop_label_font_size = 7;
+    repeated double stop_label_offset = 8;
+    double stop_radius = 9;
+    Color underlayer_color = 10;
+    double underlayer_width = 11;
+    double width = 12;
+}
