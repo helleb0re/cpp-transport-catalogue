@@ -35,5 +35,4 @@ transport-catalogue/.vscode
 transport-catalogue/.idea
 transport-catalogue/cmake-build-debug
 transport-catalogue/build
-transport-catalogue/**.txt
 transport-catalogue/.cache
