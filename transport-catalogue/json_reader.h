@@ -17,14 +17,22 @@
 
 namespace transport_catalogue
 {
+    namespace detail {
+        svg::Color ParseColor(const json::Node &node);
+    } // detail
+
     namespace iodata
     {
         class JsonReader
         {
         public:
-            JsonReader(TransportCatalogue &db, RequestHandler &req_handler, std::ostream &out);
+            JsonReader(TransportCatalogue &db, RequestHandler &req_handler);
 
             void LoadFile(std::istream &input);
+            void LoadFile(const json::Document& document);
+
+            void InputData();
+            void SaveResponseFile(std::ostream &out);
 
             const json::Document &GetJsonDocument() const;
 
@@ -32,14 +40,11 @@ namespace transport_catalogue
             void InputDataBase();
             void InputRenderSettings();
             void InputRoutingSettings();
-            void OutputData();
-
-            static svg::Color ParseColor(const json::Node &node);
+            void OutputData(std::ostream &out);
 
             std::optional<json::Document> doc_;
             TransportCatalogue &db_;
             RequestHandler &req_handler_;
-            std::ostream &out_;
         };
     } // namespace json_reader
 

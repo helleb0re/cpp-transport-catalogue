@@ -4,16 +4,23 @@ using namespace std;
 
 namespace transport_catalogue
 {
+
     namespace iodata
     {
         using namespace json;
-        JsonReader::JsonReader(TransportCatalogue &db, RequestHandler &req_handler, std::ostream &out)
-            : db_(db), req_handler_(req_handler), out_(out) {}
+        JsonReader::JsonReader(TransportCatalogue &db, RequestHandler &req_handler)
+            : db_(db), req_handler_(req_handler) {}
 
         void JsonReader::LoadFile(istream &input)
         {
             doc_ = json::Load(input);
+        }
 
+        void JsonReader::LoadFile(const json::Document& document) {
+            doc_ = document;
+        }
+
+        void JsonReader::InputData() {
             Dict values = doc_.value().GetRoot().AsDict();
 
             if (values.count("base_requests"s) != 0 && !values.at("base_requests"s).AsArray().empty())
@@ -24,9 +31,13 @@ namespace transport_catalogue
 
             if (values.count("routing_settings"s) != 0 && !values.at("routing_settings"s).AsDict().empty())
                 InputRoutingSettings();
+        }
+
+        void JsonReader::SaveResponseFile(std::ostream &out) {
+            Dict values = doc_.value().GetRoot().AsDict();
 
             if (values.count("stat_requests"s) != 0 && !values.at("stat_requests"s).AsArray().empty())
-                OutputData();
+                OutputData(out);
         }
 
         const Document &JsonReader::GetJsonDocument() const
@@ -116,7 +127,7 @@ namespace transport_catalogue
             rs.stop_label_offset = {stop_label_offset_tmp[0].AsDouble(),
                                     stop_label_offset_tmp[1].AsDouble()};
 
-            rs.underlayer_color = ParseColor(render_settings.at("underlayer_color"s));
+            rs.underlayer_color = detail::ParseColor(render_settings.at("underlayer_color"s));
 
             rs.underlayer_width = render_settings.at("underlayer_width"s).AsDouble();
 
@@ -124,7 +135,7 @@ namespace transport_catalogue
             rs.color_palette.reserve(color_palette_tmp.size());
 
             for (const auto &node : color_palette_tmp)
-                rs.color_palette.push_back(ParseColor(node));
+                rs.color_palette.push_back(detail::ParseColor(node));
 
             req_handler_.SetRenderSettings(rs);
         }
@@ -140,8 +151,7 @@ namespace transport_catalogue
             req_handler_.SetRoutingSettings(rs);
         }
 
-        void JsonReader::OutputData()
-        {
+        void JsonReader::OutputData(std::ostream &out) {
             Array stat_requests = doc_.value().GetRoot().AsDict().at("stat_requests"s).AsArray();
 
             Array responses_array = Builder{}
@@ -307,10 +317,13 @@ namespace transport_catalogue
                 }
             }
 
-            Print(Document{Node{responses_array}}, out_);
+            Print(Document{Node{responses_array}}, out);
         }
 
-        svg::Color JsonReader::ParseColor(const Node &node)
+    } // namespace iodata
+
+    namespace detail {
+        svg::Color ParseColor(const json::Node &node)
         {
             if (node.IsString())
             {
@@ -318,7 +331,7 @@ namespace transport_catalogue
             }
             else
             {
-                Array color_tmp = node.AsArray();
+                json::Array color_tmp = node.AsArray();
                 if (color_tmp.size() == 3)
                 {
                     return svg::Rgb{static_cast<uint8_t>(color_tmp[0].AsInt()),
@@ -334,7 +347,6 @@ namespace transport_catalogue
                 }
             }
         }
-
-    } // namespace iodata
+    } // detail
 
 } // namespace transport_catalogue
