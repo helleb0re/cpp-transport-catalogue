@@ -37,14 +37,13 @@ namespace transport_catalogue
     {
     public:
         void AddStop(const std::string_view &name, geo::Coordinates coord);
-        Stop *FindStop(const std::string_view name) const;
-        const std::unordered_set<std::string_view> *GetBusSchedules(const std::string_view stop_name) const;
+        Stop *FindStop(std::string_view name) const;
+        const std::unordered_set<std::string_view> *GetBusSchedules(std::string_view stop_name) const;
 
         void AddBus(const std::string_view &name, const std::vector<std::string_view> &route_stops, bool is_roundtrip);
-        Bus *FindBus(const std::string_view name) const;
+        Bus *FindBus(std::string_view name) const;
 
-        void AddStopDistances(const std::string_view &name,
-                              const std::vector<std::pair<std::string_view, double>> &distance);
+        void AddStopDistances(std::string_view name, const std::vector<std::pair<std::string_view, double>> &distance);
 
         const std::deque<Bus> &GetAllBuses() const;
         const std::deque<Stop> &GetAllStops() const;

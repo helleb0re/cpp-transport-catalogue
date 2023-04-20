@@ -38,8 +38,8 @@ namespace transport_catalogue
         return busname_to_bus_.at(name);
     }
 
-    void TransportCatalogue::AddStopDistances(const string_view &name,
-                                              const vector<pair<string_view, double>> &distances)
+    void TransportCatalogue::AddStopDistances(string_view name,
+                                              const vector<std::pair<std::string_view, double>> &distances)
     {
         Stop *stop1 = FindStop(name);
         for (const auto &[second_stop_name, dist] : distances)
@@ -84,4 +84,5 @@ namespace transport_catalogue
 
         return res;
     }
+
 } // namespace transport_catalogue
