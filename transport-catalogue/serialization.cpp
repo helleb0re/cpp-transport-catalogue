@@ -15,7 +15,7 @@ void Serialization::MakeBase(std::istream &input) const {
     if (values.count("serialization_settings"s) != 0 && !values.at("serialization_settings"s).AsDict().empty()) {
         filename = values.at("serialization_settings"s).AsDict().at("file"s).AsString();
     } else {
-        // TODO: throw exception
+        throw std::logic_error("You have not specified a filename for serialization"s);
     }
 
     transport_catalogue_serialize::TransportCatalogue tc_pb;
@@ -56,7 +56,7 @@ void Serialization::ProcessRequests(istream &input, ostream &out) {
         ifstream inf(filename, ios::binary);
         db_pb.ParseFromIstream(&inf);
     } else {
-        // TODO: throw exception
+        throw std::logic_error("You have not specified a filename for serialization"s);
     }
 
     DeserializeBaseData(db_pb.tc());
